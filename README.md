@@ -1,0 +1,1 @@
+# Cloudstore-App-Template

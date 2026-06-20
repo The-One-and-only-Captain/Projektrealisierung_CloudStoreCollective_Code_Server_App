@@ -1,0 +1,16 @@
+#cloud-config
+write_files:
+  - path: /etc/cloudstore_app_config.info
+    permissions: '0644'
+    content: |
+      This file demonstrates that variables were passed correctly.
+      ----------------------------------------------------------
+      App Name:     ${app_name}
+      Environment:  ${environment}
+      Admins:       ${admins}
+      Backup Mode:  ${backup}
+      Disk Size:    ${disk} GB
+      ----------------------------------------------------------
+
+runcmd:
+  - echo "CloudStore Reference App initialized."

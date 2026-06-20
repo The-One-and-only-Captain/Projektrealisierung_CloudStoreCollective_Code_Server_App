@@ -1,0 +1,80 @@
+template:
+  # --- METADATA (MANDATORY) ---
+  name: "reference-app-template"
+  display_name: "Reference App Template"
+  description: "Basis-Template für CloudStore Apps. Enthält alle Input-Typen und Validierungsregeln."
+  version: "1.0.0"
+  category: "education"
+  author: "CloudStore Team"
+  icon: "icon.png"
+
+  terraform:
+    working_dir: terraform/
+    required_version: ">= 1.6.0"
+
+  # --- INPUT PARAMETERS (REFERENCE) ---
+  # Entwickler können diese Sektion anpassen, müssen aber die
+  # Validierungs-Logik in variables.tf übernehmen.
+  parameters:
+  #MANDATORY
+    # 1. STRING (Text mit Regex) (MANDATORY)
+    - name: app_name
+      type: string
+      description: "Name der Anwendung (nur Kleinbuchstaben)"
+      required: true
+      validation:
+        pattern: "^[a-z0-9-]{3,20}$"
+  #OPTIONAL
+    # 2. SELECTION (Dropdown)
+    - name: environment
+      type: selection
+      description: "Deployment Umgebung"
+      required: true
+      default: "dev"
+      options:
+        - label: "Development"
+          value: "dev"
+        - label: "Production"
+          value: "prod"
+
+    # 3. ARRAY (Liste von Strings)
+    - name: admin_emails
+      type: array
+      description: "Liste der Admin E-Mails"
+      required: true
+      validation:
+        min_items: 1
+        max_items: 5
+
+    # 4. BOOLEAN (Checkbox)
+    - name: enable_backup
+      type: boolean
+      description: "Backups aktivieren?"
+      default: false
+      required: false
+
+    # 5. NUMBER (Zahl)
+    - name: disk_size_gb
+      type: number
+      description: "Größe der Festplatte (GB)"
+      default: 10
+      required: true
+      validation:
+        min: 10
+        max: 100
+
+  # --- OUTPUTS (CONTRACT) ---
+  outputs:
+    # SYSTEM PFLICHTFELD: Wird vom Backend zur Verwaltung benötigt
+    - name: instance_id
+      description: "System ID der Haupt-Instanz"
+      display: false
+    
+    - name: app_name
+      description: "Name der Anwendung"
+      display: true
+
+    # OPTIONAL: Beispiele für Nutzer-Outputs
+    - name: access_ip
+      description: "Zugriffs-IP"
+      display: true
