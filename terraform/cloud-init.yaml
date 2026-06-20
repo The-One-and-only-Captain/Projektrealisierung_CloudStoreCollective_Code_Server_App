@@ -1,16 +1,127 @@
 #cloud-config
+
+# Code-Server Setup
+# Installiert code-server (https://github.com/coder/code-server) und legt
+# pro Nutzer eine eigene systemd-Instanz auf einem dedizierten Port an.
+
+package_update: true
+package_upgrade: false
+
+bootcmd:
+  - mkdir -p /opt/cloudstore /etc/cloudstore
+
+packages:
+  - curl
+  - ca-certificates
+  - ufw
+  - sudo
+
 write_files:
-  - path: /etc/cloudstore_app_config.info
+  # Übersicht aller User für den Admin
+  - path: /etc/cloudstore/code_info.txt
+    permissions: '0600'
+    content: |
+      CloudStore Code-Server Deployment
+      =================================
+      App:       ${app_name}
+      Public IP: ${floating_ip}
+
+      Admin
+      -----
+      Username:  ${admin_username}
+      Email:     ${admin_email}
+      Password:  ${admin_password}
+      URL:       http://${floating_ip}:${admin_port}
+
+      Studierende
+      -----------
+      %{ for s in students ~}
+      ${s.username} / ${s.email} / Port ${s.port} / ${s.password}
+      %{ endfor ~}
+
+  # Helper-Skript: legt User an, schreibt Code-Server Config, aktiviert systemd-Service
+  - path: /opt/cloudstore/setup_user.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      # Args: username password port [--admin]
+      set -e
+      USERNAME="$1"
+      PASSWORD="$2"
+      PORT="$3"
+      IS_ADMIN="$4"
+
+      # User anlegen (falls noch nicht vorhanden)
+      if ! id "$USERNAME" >/dev/null 2>&1; then
+        useradd -m -s /bin/bash "$USERNAME"
+      fi
+      echo "$USERNAME:$PASSWORD" | chpasswd
+
+      if [ "$IS_ADMIN" = "--admin" ]; then
+        usermod -aG sudo "$USERNAME"
+      fi
+
+      # Code-Server Config pro User
+      CONFIG_DIR="/home/$USERNAME/.config/code-server"
+      mkdir -p "$CONFIG_DIR"
+      cat > "$CONFIG_DIR/config.yaml" <<EOF
+      bind-addr: 0.0.0.0:$PORT
+      auth: password
+      password: $PASSWORD
+      cert: false
+      EOF
+      chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
+
+      # Workspace-Ordner
+      mkdir -p "/home/$USERNAME/workspace"
+      chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/workspace"
+
+      # Systemd-Service aktivieren (Template-Unit code-server@.service)
+      systemctl enable "code-server@$USERNAME.service"
+      systemctl start "code-server@$USERNAME.service"
+
+  # Systemd Template-Unit: eine Instanz pro User
+  - path: /etc/systemd/system/code-server@.service
     permissions: '0644'
     content: |
-      This file demonstrates that variables were passed correctly.
-      ----------------------------------------------------------
-      App Name:     ${app_name}
-      Environment:  ${environment}
-      Admins:       ${admins}
-      Backup Mode:  ${backup}
-      Disk Size:    ${disk} GB
-      ----------------------------------------------------------
+      [Unit]
+      Description=Code-Server für %i
+      After=network.target
+
+      [Service]
+      Type=exec
+      User=%i
+      Environment=HOME=/home/%i
+      WorkingDirectory=/home/%i/workspace
+      ExecStart=/usr/bin/code-server --config /home/%i/.config/code-server/config.yaml
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
 
 runcmd:
-  - echo "CloudStore Reference App initialized."
+  # UFW Firewall: SSH + Code-Server Port-Range
+  - ufw --force enable
+  - ufw allow 22/tcp
+  - ufw allow 8080:8099/tcp
+
+  # Code-Server installieren (offizielles Convenience-Skript)
+  - curl -fsSL https://code-server.dev/install.sh | sh
+
+  # Systemd reloaden, damit die Template-Unit gefunden wird
+  - systemctl daemon-reload
+
+  # Admin einrichten
+  - /opt/cloudstore/setup_user.sh '${admin_username}' '${admin_password}' '${admin_port}' --admin
+
+  # Studierende einrichten
+%{ for s in students ~}
+  - /opt/cloudstore/setup_user.sh '${s.username}' '${s.password}' '${s.port}'
+%{ endfor ~}
+
+final_message: |
+  Code-Server wurde installiert.
+  App: ${app_name}
+  Public IP: ${floating_ip}
+  Admin-URL: http://${floating_ip}:${admin_port}

@@ -1,80 +1,124 @@
 template:
-  # --- METADATA (MANDATORY) ---
-  name: "reference-app-template"
-  display_name: "Reference App Template"
-  description: "Basis-Template für CloudStore Apps. Enthält alle Input-Typen und Validierungsregeln."
+  # --- METADATA ---
+  name: "code-server"
+  display_name: "Code-Server (VS Code im Browser)"
+  description: "Self-hosted VS Code im Browser. Pro Studierendem eine isolierte IDE-Instanz mit eigenem Workspace und Passwortschutz."
   version: "1.0.0"
   category: "education"
-  author: "CloudStore Team"
-  icon: "icon.png"
+  author: "DHBW CloudStore Team"
+  icon: code-server.png
 
   terraform:
     working_dir: terraform/
     required_version: ">= 1.6.0"
 
-  # --- INPUT PARAMETERS (REFERENCE) ---
-  # Entwickler können diese Sektion anpassen, müssen aber die
-  # Validierungs-Logik in variables.tf übernehmen.
+  email_credentials:
+    enabled: true
+
+  tags:
+    - code-server
+    - vscode
+    - ide
+    - education
+
   parameters:
-  #MANDATORY
-    # 1. STRING (Text mit Regex) (MANDATORY)
+    # --- Allgemein ---
     - name: app_name
       type: string
-      description: "Name der Anwendung (nur Kleinbuchstaben)"
+      description: "Name der Code-Server-Instanz (z.B. wwi23sea-codeserver)"
       required: true
       validation:
         pattern: "^[a-z0-9-]{3,20}$"
-  #OPTIONAL
-    # 2. SELECTION (Dropdown)
-    - name: environment
-      type: selection
-      description: "Deployment Umgebung"
-      required: true
-      default: "dev"
-      options:
-        - label: "Development"
-          value: "dev"
-        - label: "Production"
-          value: "prod"
+      x-ui:
+        group: "Allgemein"
+        order: 1
+        icon: Server
+        placeholder: "z.B. wwi23sea-codeserver"
+        hint: "Nur Kleinbuchstaben, Zahlen und Bindestriche (3-20 Zeichen)"
 
-    # 3. ARRAY (Liste von Strings)
-    - name: admin_emails
+    - name: admin_email
+      type: string
+      description: "E-Mail des Dozenten (erhält eigene Instanz mit Sudo-Rechten auf der VM)"
+      required: true
+      validation:
+        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      x-ui:
+        group: "Allgemein"
+        order: 2
+        icon: Users
+        placeholder: "dozent@dhbw-mannheim.de"
+        widget: user-picker
+        multi: false
+        extract: email
+
+    - name: student_emails
       type: array
-      description: "Liste der Admin E-Mails"
+      description: "E-Mails der Studierenden (jeder erhält eigene Code-Server-Instanz)"
       required: true
       validation:
         min_items: 1
-        max_items: 5
+        max_items: 20
+      x-ui:
+        group: "Allgemein"
+        order: 3
+        icon: Users
+        widget: user-picker
+        multi: true
+        extract: email
 
-    # 4. BOOLEAN (Checkbox)
-    - name: enable_backup
-      type: boolean
-      description: "Backups aktivieren?"
-      default: false
-      required: false
-
-    # 5. NUMBER (Zahl)
-    - name: disk_size_gb
-      type: number
-      description: "Größe der Festplatte (GB)"
-      default: 10
+    # --- Ressourcen ---
+    - name: flavor_name
+      type: selection
+      description: "Ressourcen (Quota)"
       required: true
-      validation:
-        min: 10
-        max: 100
+      options:
+        - label: "Small (1 CPU, 2GB RAM) — bis ~5 Nutzer"
+          value: "gp1.small"
+        - label: "Medium (2 CPU, 4GB RAM) — bis ~10 Nutzer"
+          value: "gp1.medium"
+        - label: "Large (4 CPU, 8GB RAM) — bis ~20 Nutzer"
+          value: "gp1.large"
+      default: "gp1.medium"
+      x-ui:
+        group: "Ressourcen"
+        order: 1
+        icon: Cpu
+        hint: "Pro Nutzer eine eigene Code-Server-Instanz — Größe nach Anzahl wählen"
 
-  # --- OUTPUTS (CONTRACT) ---
   outputs:
-    # SYSTEM PFLICHTFELD: Wird vom Backend zur Verwaltung benötigt
+    # SYSTEM PFLICHTFELDER (Hidden)
     - name: instance_id
-      description: "System ID der Haupt-Instanz"
+      description: "System ID der Instanz"
       display: false
-    
+
     - name: app_name
       description: "Name der Anwendung"
       display: true
 
-    # OPTIONAL: Beispiele für Nutzer-Outputs
-    - name: access_ip
-      description: "Zugriffs-IP"
+    # USER OUTPUTS
+    - name: ssh_command
+      description: "SSH-Zugang zur VM"
       display: true
+
+    - name: admin_credentials
+      description: "Admin-Zugangsdaten (Dozent)"
+      sensitive: true
+      display: false
+
+    - name: student_credentials
+      description: "Studierenden-Zugangsdaten"
+      sensitive: true
+      display: false
+
+    - name: ssh_private_key
+      description: "SSH Private Key"
+      sensitive: true
+      display: false
+
+  estimated_costs:
+    hourly: "0.05 - 0.20 EUR"
+    monthly: "40 - 150 EUR"
+
+  requirements:
+    - "SSH Port 22"
+    - "HTTP Ports 8080-8099 (Code-Server pro Nutzer)"
