@@ -16,6 +16,16 @@ output "app_name" {
 # PUBLIC OUTPUTS
 # ==============================================================================
 
+output "admin_url" {
+  description = "Code-Server URL des Dozenten (HTTPS, Self-Signed Cert)"
+  value       = var.use_mock_provider ? "https://mock-ip:${local.admin_port}" : "https://${openstack_networking_floatingip_v2.code_fip[0].address}:${local.admin_port}"
+}
+
+output "student_port_range" {
+  description = "Port-Range der Studierenden-Instanzen (jede:r bekommt eigene URL in student_credentials)"
+  value       = "https://${var.use_mock_provider ? "mock-ip" : openstack_networking_floatingip_v2.code_fip[0].address}:8081 ... :8099"
+}
+
 output "ssh_command" {
   description = "SSH-Befehl für den VM-Zugang"
   value       = var.use_mock_provider ? "ssh ubuntu@mock-ip" : "ssh -i <private_key> ubuntu@${openstack_networking_floatingip_v2.code_fip[0].address}"
