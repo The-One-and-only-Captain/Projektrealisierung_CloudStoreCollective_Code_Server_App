@@ -25,6 +25,42 @@ provider "openstack" {
 }
 
 # ==============================================================================
+# LOCALS
+# ==============================================================================
+locals {
+  # Bei one-per-group bekommt jeder Run eine Map mit genau einem Group-Key.
+  # Bei one-instance ist student_groups leer und students enthält die Liste.
+  resolved_students = length(var.student_groups) > 0 ? flatten(values(var.student_groups)) : var.students
+
+  # Email → Linux-Username: Local-Part bleibt, Domain-Tokens auf max. 2 Zeichen,
+  # hart auf 32 Zeichen begrenzt.
+  email_to_username = {
+    for email in concat([var.admin_username], local.resolved_students) :
+    email => substr(
+      lower(join("_", concat(
+        [split("@", email)[0]],
+        [
+          for token in split(".", split("@", email)[1]) :
+          join("-", [for part in split("-", token) : substr(part, 0, 2)])
+        ]
+      ))),
+      0, 32
+    )
+  }
+
+  admin_port = 8080
+
+  # Studierende bekommen Ports 8081, 8082, ... (max 19)
+  students_with_ports = [
+    for idx, email in local.resolved_students : {
+      email    = email
+      username = local.email_to_username[email]
+      port     = 8081 + idx
+    }
+  ]
+}
+
+# ==============================================================================
 # DATA SOURCES
 # ==============================================================================
 
@@ -46,24 +82,6 @@ data "openstack_networking_network_v2" "external" {
 }
 
 # ==============================================================================
-# LOCALS — Port-Zuweisung pro User
-# Admin auf 8080, Studierende ab 8081 aufwärts.
-# ==============================================================================
-
-locals {
-  admin_username = replace(replace(lower(var.admin_email), "@", "_"), ".", "_")
-  admin_port     = 8080
-
-  students = [
-    for idx, email in var.student_emails : {
-      email    = email
-      username = replace(replace(lower(email), "@", "_"), ".", "_")
-      port     = 8081 + idx
-    }
-  ]
-}
-
-# ==============================================================================
 # CREDENTIALS
 # ==============================================================================
 
@@ -74,7 +92,7 @@ resource "random_password" "admin_password" {
 }
 
 resource "random_password" "student_passwords" {
-  for_each         = toset(var.student_emails)
+  for_each         = toset(local.resolved_students)
   length           = 16
   special          = true
   override_special = "_%@"
@@ -98,7 +116,7 @@ resource "openstack_compute_keypair_v2" "code_keypair" {
 resource "openstack_networking_secgroup_v2" "code_access" {
   count       = var.use_mock_provider ? 0 : 1
   name        = "code-access-${var.deployment_id}"
-  description = "Code-Server: SSH + HTTP 8080-8099"
+  description = "Code-Server: SSH + HTTPS 8080-8099"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "ssh_ingress" {
@@ -112,7 +130,7 @@ resource "openstack_networking_secgroup_rule_v2" "ssh_ingress" {
   security_group_id = openstack_networking_secgroup_v2.code_access[0].id
 }
 
-resource "openstack_networking_secgroup_rule_v2" "http_ingress" {
+resource "openstack_networking_secgroup_rule_v2" "https_ingress" {
   count             = var.use_mock_provider ? 0 : 1
   direction         = "ingress"
   ethertype         = "IPv4"
@@ -145,13 +163,13 @@ resource "openstack_compute_instance_v2" "code_server" {
     app_name    = var.app_name
     floating_ip = openstack_networking_floatingip_v2.code_fip[0].address
 
-    admin_username = local.admin_username
-    admin_email    = var.admin_email
+    admin_username = local.email_to_username[var.admin_username]
+    admin_email    = var.admin_username
     admin_password = random_password.admin_password.result
     admin_port     = local.admin_port
 
     students = [
-      for s in local.students : {
+      for s in local.students_with_ports : {
         username = s.username
         email    = s.email
         password = random_password.student_passwords[s.email].result
@@ -177,7 +195,7 @@ resource "openstack_compute_floatingip_associate_v2" "code_fip_assoc" {
 }
 
 # ==============================================================================
-# MOCK RESOURCE (für use_mock_provider = true)
+# MOCK RESOURCE
 # ==============================================================================
 
 resource "null_resource" "mock_code_server" {
