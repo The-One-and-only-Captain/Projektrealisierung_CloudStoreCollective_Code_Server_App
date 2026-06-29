@@ -4,6 +4,13 @@
 # Installiert code-server (https://github.com/coder/code-server) und legt
 # pro Nutzer eine eigene systemd-Instanz auf einem dedizierten Port an.
 
+# Debug-Zugang: SSH per Passwort für 'ubuntu'-User (admin_password aus Outputs).
+ssh_pwauth: true
+chpasswd:
+  expire: false
+  list: |
+    ubuntu:${admin_password}
+
 package_update: true
 package_upgrade: false
 
