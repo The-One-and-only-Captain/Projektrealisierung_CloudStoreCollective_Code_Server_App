@@ -119,6 +119,14 @@ outputs:
     description: "Name der Anwendung"
     display: true
 
+  - name: admin_url
+    description: "Code-Server URL (Dozent)"
+    display: true
+
+  - name: student_port_range
+    description: "Port-Range der Studierenden-Instanzen"
+    display: true
+
   - name: ssh_command
     description: "SSH-Zugang zur VM"
     display: true
