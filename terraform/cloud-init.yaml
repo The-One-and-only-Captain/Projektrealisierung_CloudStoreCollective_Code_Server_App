@@ -38,7 +38,7 @@ write_files:
       Username:  ${admin_username}
       Email:     ${admin_email}
       Password:  ${admin_password}
-      URL:       https://${floating_ip}:${admin_port}
+      URL:       http://${floating_ip}:${admin_port}
 
       Studierende
       -----------
@@ -75,7 +75,7 @@ write_files:
       bind-addr: 0.0.0.0:$PORT
       auth: password
       password: $PASSWORD
-      cert: true
+      cert: false
       EOF
       chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/.config"
 
@@ -131,4 +131,4 @@ final_message: |
   Code-Server wurde installiert.
   App: ${app_name}
   Public IP: ${floating_ip}
-  Admin-URL: https://${floating_ip}:${admin_port}
+  Admin-URL: http://${floating_ip}:${admin_port}
