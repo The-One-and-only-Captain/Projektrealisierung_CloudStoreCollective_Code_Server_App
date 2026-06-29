@@ -1,124 +1,139 @@
-template:
-  # --- METADATA ---
-  name: "code-server"
-  display_name: "Code-Server (VS Code im Browser)"
-  description: "Self-hosted VS Code im Browser. Pro Studierendem eine isolierte IDE-Instanz mit eigenem Workspace und Passwortschutz."
-  version: "1.0.0"
-  category: "education"
-  author: "DHBW CloudStore Team"
-  icon: code-server.png
+name: code-server
+display_name: "Code-Server (VS Code im Browser)"
+description: "Self-hosted VS Code im Browser. Pro Studierendem eine isolierte IDE-Instanz mit eigenem Workspace und Passwortschutz."
+version: "2.0.0"
+category: "education"
+author: "DHBW CloudStore Team"
+icon: code-server.png
 
-  terraform:
-    working_dir: terraform/
-    required_version: ">= 1.6.0"
+terraform:
+  working_dir: terraform/
+  required_version: ">= 1.6.0"
 
-  email_credentials:
-    enabled: true
+tags:
+  - code-server
+  - vscode
+  - ide
+  - education
 
-  tags:
-    - code-server
-    - vscode
-    - ide
-    - education
+email_credentials:
+  enabled: true
 
-  parameters:
-    # --- Allgemein ---
+deploy-strategy:
+  one-instance: true
+  one-per-group: true
+
+ui-groups:
+  - id: general
+    title: "Allgemein und Nutzer"
+    order: 1
+  - id: resources
+    title: "Ressourcen"
+    order: 2
+
+parameters:
+
+  general:
     - name: app_name
       type: string
-      description: "Name der Code-Server-Instanz (z.B. wwi23sea-codeserver)"
       required: true
       validation:
         pattern: "^[a-z0-9-]{3,20}$"
+      description: "Name der Code-Server-Instanz"
       x-ui:
-        group: "Allgemein"
-        order: 1
+        group_id: general
+        in_group_order: 1
         icon: Server
         placeholder: "z.B. wwi23sea-codeserver"
         hint: "Nur Kleinbuchstaben, Zahlen und Bindestriche (3-20 Zeichen)"
 
-    - name: admin_email
+    - name: admin_username
       type: string
-      description: "E-Mail des Dozenten (erhält eigene Instanz mit Sudo-Rechten auf der VM)"
       required: true
-      validation:
-        pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+      description: "Dozent (erhält eigene Code-Server-Instanz und Sudo-Rechte auf der VM)"
       x-ui:
-        group: "Allgemein"
-        order: 2
+        group_id: general
+        in_group_order: 2
         icon: Users
-        placeholder: "dozent@dhbw-mannheim.de"
-        widget: user-picker
-        multi: false
-        extract: email
+        placeholder: "Dozent auswählen..."
+        widget:
+          type: user-picker
+          multi: false
+          extract: email
 
-    - name: student_emails
+    - name: students
       type: array
-      description: "E-Mails der Studierenden (jeder erhält eigene Code-Server-Instanz)"
-      required: true
+      required: false
       validation:
-        min_items: 1
-        max_items: 20
+        max_items: 19
+      description: "Studierende (jeder erhält eigene Code-Server-Instanz auf der VM, bei one-instance)"
       x-ui:
-        group: "Allgemein"
-        order: 3
+        group_id: general
+        in_group_order: 3
         icon: Users
-        widget: user-picker
-        multi: true
-        extract: email
+        placeholder: "Studierende auswählen..."
+        hint: "Befüllen, wenn alle Studierenden auf eine geteilte VM sollen (jeder bekommt eigenen Port). Max 19 + Dozent = 20 Instanzen. → Strategie 'one-instance' im nächsten Schritt."
+        widget:
+          type: user-picker
+          multi: true
+          extract: email
 
-    # --- Ressourcen ---
+    - name: student_groups
+      type: groups
+      required: false
+      description: "Projektgruppen der Studierenden (bei one-per-group: eine VM je Gruppe)"
+      x-ui:
+        group_id: general
+        in_group_order: 4
+        icon: Users
+        hint: "Befüllen, wenn pro Gruppe eine eigene VM entstehen soll. → Strategie 'one-per-group' im nächsten Schritt."
+        widget:
+          type: group-builder
+          extract: email
+
+  specific:
     - name: flavor_name
       type: selection
-      description: "Ressourcen (Quota)"
       required: true
-      options:
-        - label: "Small (1 CPU, 2GB RAM) — bis ~5 Nutzer"
-          value: "gp1.small"
-        - label: "Medium (2 CPU, 4GB RAM) — bis ~10 Nutzer"
-          value: "gp1.medium"
-        - label: "Large (4 CPU, 8GB RAM) — bis ~20 Nutzer"
-          value: "gp1.large"
       default: "gp1.medium"
+      options:
+        - label: "Small (1 CPU, 2 GB RAM) — bis ~5 Nutzer"
+          value: "gp1.small"
+        - label: "Medium (2 CPU, 4 GB RAM) — bis ~10 Nutzer"
+          value: "gp1.medium"
+        - label: "Large (4 CPU, 8 GB RAM) — bis ~20 Nutzer"
+          value: "gp1.large"
+      description: "VM-Größe"
       x-ui:
-        group: "Ressourcen"
-        order: 1
+        group_id: resources
+        in_group_order: 1
         icon: Cpu
-        hint: "Pro Nutzer eine eigene Code-Server-Instanz — Größe nach Anzahl wählen"
+        hint: "Pro Nutzer eine eigene Code-Server-Instanz — Größe nach Anzahl wählen."
 
-  outputs:
-    # SYSTEM PFLICHTFELDER (Hidden)
-    - name: instance_id
-      description: "System ID der Instanz"
-      display: false
+outputs:
+  - name: instance_id
+    description: "System ID der Instanz"
+    display: false
 
-    - name: app_name
-      description: "Name der Anwendung"
-      display: true
+  - name: app_name
+    description: "Name der Anwendung"
+    display: true
 
-    # USER OUTPUTS
-    - name: ssh_command
-      description: "SSH-Zugang zur VM"
-      display: true
+  - name: ssh_command
+    description: "SSH-Zugang zur VM"
+    display: true
 
-    - name: admin_credentials
-      description: "Admin-Zugangsdaten (Dozent)"
-      sensitive: true
-      display: false
+  - name: admin_credentials
+    description: "Admin-Zugangsdaten (Dozent)"
+    sensitive: true
+    display: false
 
-    - name: student_credentials
-      description: "Studierenden-Zugangsdaten"
-      sensitive: true
-      display: false
+  - name: student_credentials
+    description: "Studierenden-Zugangsdaten"
+    sensitive: true
+    display: false
 
-    - name: ssh_private_key
-      description: "SSH Private Key"
-      sensitive: true
-      display: false
-
-  estimated_costs:
-    hourly: "0.05 - 0.20 EUR"
-    monthly: "40 - 150 EUR"
-
-  requirements:
-    - "SSH Port 22"
-    - "HTTP Ports 8080-8099 (Code-Server pro Nutzer)"
+  - name: ssh_private_key
+    description: "SSH Private Key"
+    sensitive: true
+    display: false
