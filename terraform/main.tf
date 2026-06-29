@@ -88,14 +88,14 @@ data "openstack_networking_network_v2" "external" {
 resource "random_password" "admin_password" {
   length           = 20
   special          = true
-  override_special = "_%@"
+  override_special = "_-"
 }
 
 resource "random_password" "student_passwords" {
   for_each         = toset(local.resolved_students)
   length           = 16
   special          = true
-  override_special = "_%@"
+  override_special = "_-"
 }
 
 resource "tls_private_key" "code_ssh_key" {
