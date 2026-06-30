@@ -72,7 +72,7 @@ parameters:
         in_group_order: 3
         icon: Users
         placeholder: "Studierende auswählen..."
-        hint: "Alle teilnehmenden Studierenden auswählen. Bei Strategie 'one-instance' bekommt jeder einen eigenen Port auf einer VM (max. 19 + Dozent = 20 Instanzen). Bei 'one-per-group' wird daraus unten die Gruppen-Auswahl."
+        hint: "Alle teilnehmenden Studierenden auswählen. Bei Strategie 'one-instance' teilen sich alle eine VM (eigener Port pro Person, max. 19 + Dozent). Bei 'one-per-group' wird daraus unten die Gruppen-Auswahl."
         widget:
           type: user-picker
           multi: true

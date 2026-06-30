@@ -99,8 +99,9 @@ write_files:
       Type=exec
       User=%i
       Environment=HOME=/home/%i
+      Environment=PATH=/usr/local/bin:/usr/bin:/bin
       WorkingDirectory=/home/%i/workspace
-      ExecStart=/usr/bin/code-server --config /home/%i/.config/code-server/config.yaml
+      ExecStart=/usr/local/bin/code-server --config /home/%i/.config/code-server/config.yaml
       Restart=always
       RestartSec=10
 
