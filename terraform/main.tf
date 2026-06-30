@@ -116,7 +116,7 @@ resource "openstack_compute_keypair_v2" "code_keypair" {
 resource "openstack_networking_secgroup_v2" "code_access" {
   count       = var.use_mock_provider ? 0 : 1
   name        = "code-access-${var.deployment_id}"
-  description = "Code-Server: SSH + HTTPS 8080-8099"
+  description = "Code-Server: SSH + HTTP 8080-8099"
 }
 
 resource "openstack_networking_secgroup_rule_v2" "ssh_ingress" {
@@ -130,7 +130,7 @@ resource "openstack_networking_secgroup_rule_v2" "ssh_ingress" {
   security_group_id = openstack_networking_secgroup_v2.code_access[0].id
 }
 
-resource "openstack_networking_secgroup_rule_v2" "https_ingress" {
+resource "openstack_networking_secgroup_rule_v2" "http_ingress" {
   count             = var.use_mock_provider ? 0 : 1
   direction         = "ingress"
   ethertype         = "IPv4"

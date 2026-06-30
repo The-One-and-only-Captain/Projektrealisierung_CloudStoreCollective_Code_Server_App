@@ -67,7 +67,7 @@ Bei `one-per-group` startet die Nummerierung pro VM neu — Admin auf 8080, Grup
    - Config in `/home/<user>/.config/code-server/config.yaml`:
      - `bind-addr: 0.0.0.0:<port>`
      - `auth: password` + Passwort
-     - `cert: true` → code-server generiert Self-Signed Cert
+     - `cert: false` → HTTP (kein TLS)
    - Workspace-Ordner `/home/<user>/workspace`
    - Systemd-Service aktivieren und starten
 
@@ -84,11 +84,10 @@ E-Mails werden zu Linux-Usernames konvertiert. Local-Part bleibt, jedes Domain-T
 
 ### Studierende
 
-1. Browser öffnen: `code_url` aus `student_credentials[<eigene-email>]` (`https://<floating-ip>:<port>`)
-2. **Self-Signed Cert akzeptieren** — Browser-Warnung wegklicken
-3. Login mit dem **Passwort** aus den Credentials (kein separater Username — code-server hat ein einzelnes Passwort pro Instanz)
-4. Arbeitsumgebung: `/home/<username>/workspace`
-5. **Terminal im Browser:** Code-Server bietet integriertes Terminal mit dem eigenen Linux-User
+1. Browser öffnen: `code_url` aus `student_credentials[<eigene-email>]` (`http://<floating-ip>:<port>`)
+2. Login mit dem **Passwort** aus den Credentials (kein separater Username — code-server hat ein einzelnes Passwort pro Instanz)
+3. Arbeitsumgebung: `/home/<username>/workspace`
+4. **Terminal im Browser:** Code-Server bietet integriertes Terminal mit dem eigenen Linux-User
 
 ### Dozent (Admin)
 
@@ -130,11 +129,11 @@ sudo systemctl list-units 'code-server@*' --type=service
 | Port | Zweck |
 |---|---|
 | 22 | SSH (Admin via Key) |
-| 8080 | Admin Code-Server (HTTPS, Self-Signed) |
-| 8081-8099 | Studierenden Code-Server (HTTPS, Self-Signed) |
+| 8080 | Admin Code-Server (HTTP) |
+| 8081-8099 | Studierenden Code-Server (HTTP) |
 
 ## Hinweise
 
-- **Self-Signed Cert pro Instanz:** Jede Code-Server-Instanz generiert ihr eigenes Zertifikat beim ersten Start. Browser warnt einmalig pro URL/Port-Kombination.
+- **Kein HTTPS:** Code-Server läuft hier ohne TLS. Im DHBW-Lehrkontext akzeptabel; für externe Nutzung sollte ein Reverse-Proxy (nginx + Let's Encrypt) davor.
 - **Workspace ist VM-lokal:** Bei VM-Destroy gehen Dateien verloren. Studierende sollten regelmäßig `git push` machen.
 - **Ressourcenteilung:** Bei N parallelen Nutzern teilen sich alle die VM-Ressourcen. Für rechenintensive Sessions Large-Flavor wählen.

@@ -17,13 +17,13 @@ output "app_name" {
 # ==============================================================================
 
 output "admin_url" {
-  description = "Code-Server URL des Dozenten (HTTPS, Self-Signed Cert)"
-  value       = var.use_mock_provider ? "https://mock-ip:${local.admin_port}" : "https://${openstack_networking_floatingip_v2.code_fip[0].address}:${local.admin_port}"
+  description = "Code-Server URL des Dozenten"
+  value       = var.use_mock_provider ? "http://mock-ip:${local.admin_port}" : "http://${openstack_networking_floatingip_v2.code_fip[0].address}:${local.admin_port}"
 }
 
 output "student_port_range" {
   description = "Port-Range der Studierenden-Instanzen (jede:r bekommt eigene URL in student_credentials)"
-  value       = "https://${var.use_mock_provider ? "mock-ip" : openstack_networking_floatingip_v2.code_fip[0].address}:8081 ... :8099"
+  value       = "http://${var.use_mock_provider ? "mock-ip" : openstack_networking_floatingip_v2.code_fip[0].address}:8081 ... :8099"
 }
 
 output "ssh_command" {
@@ -42,7 +42,7 @@ output "admin_credentials" {
     username = local.email_to_username[var.admin_username]
     email    = var.admin_username
     password = random_password.admin_password.result
-    code_url = var.use_mock_provider ? "https://mock-ip:${local.admin_port}" : "https://${openstack_networking_floatingip_v2.code_fip[0].address}:${local.admin_port}"
+    code_url = var.use_mock_provider ? "http://mock-ip:${local.admin_port}" : "http://${openstack_networking_floatingip_v2.code_fip[0].address}:${local.admin_port}"
   }
 }
 
@@ -54,7 +54,7 @@ output "student_credentials" {
       username = s.username
       email    = s.email
       password = random_password.student_passwords[s.email].result
-      code_url = var.use_mock_provider ? "https://mock-ip:${s.port}" : "https://${openstack_networking_floatingip_v2.code_fip[0].address}:${s.port}"
+      code_url = var.use_mock_provider ? "http://mock-ip:${s.port}" : "http://${openstack_networking_floatingip_v2.code_fip[0].address}:${s.port}"
     }
   }
 }
